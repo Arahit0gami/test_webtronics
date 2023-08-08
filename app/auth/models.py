@@ -1,51 +1,69 @@
 import datetime
+from typing import Optional
 
-from sqlalchemy import Boolean, Column, ForeignKey, \
-    Integer, String, DateTime, Float
-from sqlalchemy.orm import relationship
+from sqlalchemy import ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
 
 
 class User(Base):
+
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
-    username = Column(String)
-    email = Column(String, unique=True, index=True)
-    hashed_password = Column(String)
-    is_active = Column(Boolean, default=True)
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    username: Mapped[str] = mapped_column()
+    email: Mapped[str] = mapped_column(unique=True, index=True)
+    hashed_password: Mapped[str] = mapped_column()
+    is_active: Mapped[bool] = mapped_column(default=True)
 
 
-class UsersActivity(Base):
-    __tablename__ = "users_activity"
+class AuthToken(Base):
 
-    id = Column(Integer, primary_key=True, index=True)
+    __tablename__ = "auth"
 
-    url = Column(String)
-    addr = Column(String)
-    port = Column(Integer)
-    method = Column(String)
-    user_agent = Column(String)
-    content_type = Column(String)
-    content_length = Column(String)
-    body = Column(String)
-    query_string = Column(String)
-    form_data = Column(String)
-
-    user = Column(Integer, ForeignKey('users.id'))
-    session = Column(String)
-    action = Column(String)
-
-    result_status = Column(Integer)
-    result_len = Column(Integer)
-    result_content = Column(String)
-    millis = Column(Float)
-
-    traceback = Column(String)
-
-    created = Column(
-        DateTime,
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id = mapped_column(ForeignKey(User.id))
+    token: Mapped[str] = mapped_column(index=True, unique=True, nullable=False)
+    last_update: Mapped[datetime.datetime] = mapped_column(
+        default=datetime.datetime.now,
+    )
+    refresh_token: Mapped[str] = mapped_column(
+        index=True, unique=True, nullable=False
+    )
+    is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
+    created: Mapped[datetime.datetime] = mapped_column(
         default=datetime.datetime.now,
     )
 
+
+class UsersActivity(Base):
+
+    __tablename__ = "users_activity"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+
+    url: Mapped[str] = mapped_column()
+    addr: Mapped[str] = mapped_column()
+    port: Mapped[int] = mapped_column()
+    method: Mapped[str] = mapped_column()
+    user_agent: Mapped[Optional[str]] = mapped_column()
+    content_type: Mapped[Optional[str]] = mapped_column()
+    content_length: Mapped[Optional[str]] = mapped_column()
+    body: Mapped[Optional[str]] = mapped_column()
+    query_string: Mapped[Optional[str]] = mapped_column()
+    form_data: Mapped[Optional[str]] = mapped_column()
+
+    user = mapped_column(ForeignKey(User.id))
+    token = mapped_column(ForeignKey(AuthToken.id))
+
+    result_status: Mapped[Optional[int]] = mapped_column()
+    result_len: Mapped[Optional[int]] = mapped_column()
+    result_content: Mapped[Optional[str]] = mapped_column()
+    millis: Mapped[Optional[float]] = mapped_column()
+
+    traceback: Mapped[Optional[str]] = mapped_column()
+
+    created: Mapped[datetime.datetime] = mapped_column(
+        default=datetime.datetime.now,
+    )
