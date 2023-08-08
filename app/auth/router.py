@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from passlib.context import CryptContext
 
-from sqlalchemy import select, exc
+from sqlalchemy import select, exc, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .router_class import RouteAuth, RouteWithOutAuth
@@ -126,3 +126,48 @@ async def logout(
         await session.commit()
 
     return
+
+
+@router_auth.post(
+    '/change-password',
+    status_code=status.HTTP_200_OK,
+)
+async def change_password(
+        form_data: schemas.ChangePassword,
+        request: Request,
+        session: Annotated[AsyncSession, Depends(get_session)],
+):
+    if form_data.new_password != form_data.repeat_new_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Passwords don't match"
+        )
+    if not pwd_context.verify(
+        form_data.old_password, request.user.hashed_password
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='The password was entered incorrectly'
+        )
+    if form_data.old_password == form_data.new_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='The new password must not match the old password'
+        )
+
+    user = (await session.execute(select(models.User).where(
+        models.User.id == request.user.id
+    ))).scalars().one_or_none()
+    user.hashed_password = pwd_context.hash(form_data.new_password)
+
+    stmt = (
+        update(models.AuthToken).
+        where(models.AuthToken.id != request.auth.id).
+        values(is_active=False).
+        returning(models.AuthToken)
+    )
+    await session.execute(stmt)
+
+    await session.commit()
+
+    return 'Password changed successfully'

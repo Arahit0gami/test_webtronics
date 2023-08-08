@@ -24,7 +24,7 @@ class BaseUserLogs(APIRoute):
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    exclude_url_path = ('/auth/register', '/auth/login')
+    exclude_url_path: tuple[str] = ('/auth/register', '/auth/login')
     required_auth: bool = False
 
     def get_route_handler(self) -> Callable:
@@ -139,6 +139,7 @@ class BaseUserLogs(APIRoute):
 
 class RouteAuth(BaseUserLogs):
     required_auth: bool = True
+    exclude_url_path = ('/auth/change-password',)
 
 
 class RouteWithOutAuth(BaseUserLogs):

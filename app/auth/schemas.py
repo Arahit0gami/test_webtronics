@@ -42,6 +42,12 @@ class UserToken(UserBase):
     username: str
 
 
+class ChangePassword(BaseModel):
+    old_password: str
+    new_password: str
+    repeat_new_password: str
+
+
 class TokenBase(BaseModel):
     token: str
     token_type: str = Field(default='Bearer')
