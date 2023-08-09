@@ -9,6 +9,7 @@ from fastapi.exceptions import RequestValidationError, \
     ResponseValidationError, HTTPException
 from fastapi.routing import APIRoute
 
+from app.auth import models
 from app.auth.models import UsersActivity
 from app.database import async_session
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,14 +35,13 @@ class BaseUserLogs(APIRoute):
             async with async_session() as db:
                 u_act = await self.create_log(db, request)
                 try:
-                    if self.required_auth:
-                        active: str = 'is_active'
-                        if not hasattr(
-                                request.user, active
-                        ) or not hasattr(
-                            request.auth, active
-                        ):
-                            raise self.credentials_exception
+                    if self.required_auth and (not isinstance(
+                            request.user, models.User
+                    ) or not isinstance(
+                        request.auth, models.AuthToken
+                    )):
+                        raise self.credentials_exception
+
                     response: Response = await original_route_handler(request)
                 except Exception as exc:
                     formatted_lines = traceback.format_exc().splitlines()[-5:-1]

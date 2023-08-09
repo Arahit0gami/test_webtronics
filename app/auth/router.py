@@ -27,8 +27,8 @@ router_auth = APIRouter(
     tags=["auth"],
     route_class=RouteAuth,
     dependencies=[Depends(reuseable_oauth)]
-
 )
+
 router_with_out_auth = APIRouter(
     prefix="/auth",
     tags=["auth"],

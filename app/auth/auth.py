@@ -37,7 +37,7 @@ class BasicAuthBackend(AuthenticationBackend):
                     'email': str() as email,
                     'exp': int()
                 }:
-                    user = await session.execute(
+                    user = await session.scalars(
                         select(models.User).where(
                             models.User.id == id,
                             models.User.username == username,
@@ -45,16 +45,14 @@ class BasicAuthBackend(AuthenticationBackend):
                             models.User.is_active == True,
                         )
                     )
-                    user = user.scalars().one_or_none()
-                    auth = await session.execute(
+                    auth = await session.scalars(
                         select(models.AuthToken).where(
-                            models.AuthToken.user_id == user.id,
+                            models.AuthToken.user_id == id,
                             models.AuthToken.token == token,
                             models.AuthToken.is_active == True,
                         )
                     )
-                    auth = auth.scalars().one_or_none()
-                    return auth, user
+                    return auth.one_or_none(), user.one_or_none()
 
         return AuthCredentials([]), UnauthenticatedUser
 
