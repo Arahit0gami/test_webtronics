@@ -6,6 +6,8 @@ from sqlalchemy import pool
 from alembic import context
 
 from app import settings
+from app.auth import models as auth_m
+from app.posts import models as posts_m
 from app.database import Base
 
 # this is the Alembic Config object, which provides
@@ -27,7 +29,7 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = [Base.metadata]
+target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

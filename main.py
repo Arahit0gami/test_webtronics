@@ -4,7 +4,7 @@ from starlette.middleware.authentication import AuthenticationMiddleware
 
 from app.auth.auth import BasicAuthBackend
 from app.auth.router import router_auth, router_with_out_auth
-
+from app.posts.router import router_posts, router_posts_wa
 
 middleware = [
     Middleware(AuthenticationMiddleware, backend=BasicAuthBackend())
@@ -16,3 +16,5 @@ app = FastAPI(
 
 app.include_router(router_with_out_auth)
 app.include_router(router_auth)
+app.include_router(router_posts)
+app.include_router(router_posts_wa)
