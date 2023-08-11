@@ -1,13 +1,17 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status, Request, Query
+from fastapi import APIRouter, Depends, status, Request, HTTPException
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from app.auth.router import reuseable_oauth
 from app.auth.router_class import RouteAuth, RouteWithOutAuth
 from app.database import get_session
 from app.posts import models
 from app.posts import schemas
+from app.posts.schemas import FilterPosts
+
 
 router_posts = APIRouter(
     prefix="/posts",
@@ -35,9 +39,57 @@ async def create_post(
 ) -> models.Posts:
     post = models.Posts(
         text=post_items.text,
-        author=request.user.id,
+        author=request.user,
     )
     session.add(post)
     await session.commit()
     await session.refresh(post)
     return post
+
+
+@router_posts_wa.get(
+    "/{post_id}",
+    response_model=schemas.PostBase,
+    status_code=status.HTTP_200_OK
+)
+async def get_post(
+        post_id: int,
+        session: Annotated[AsyncSession, Depends(get_session)],
+):
+    post = await session.scalars(
+        select(models.Posts).where(
+            models.Posts.id == post_id,
+            models.Posts.is_deleted == False,
+        ).options(joinedload(models.Posts.author))
+    )
+    post = post.one_or_none()
+    if not post:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"post with id={post_id} not found"
+        )
+
+    return post
+
+
+@router_posts_wa.get(
+    "/",
+    response_model=schemas.AllPosts,
+    status_code=status.HTTP_200_OK
+)
+async def get_posts(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    q: Annotated[FilterPosts, Depends()]
+):
+    """
+    Viewing all posts.\n
+    Filter: author, date_from, date_to \n
+    Sorting: from_new_to_old \n
+    Skip and Limit
+    """
+    count = await session.scalars(q.select_posts(count=True))
+    posts = await session.scalars(
+        q.select_posts().options(joinedload(models.Posts.author))
+    )
+
+    return {**q.model_dump(), "posts": posts, "total": count.one()}

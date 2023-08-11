@@ -107,7 +107,7 @@ def create_token(
     )
 
 
-async def new_token(
+async def get_new_token(
         refresh_token: str,
         session: AsyncSession,
 ):
@@ -128,7 +128,7 @@ async def new_token(
             'email': str() as email,
             'exp': int()
         }:
-            user = await session.execute(
+            user = await session.scalars(
                 select(models.User).where(
                     models.User.id == id,
                     models.User.username == username,
@@ -136,19 +136,21 @@ async def new_token(
                     models.User.is_active == True,
                 )
             )
-            user = user.scalars().one_or_none()
+            user = user.one_or_none()
             if not user:
                 raise invalid_refresh_token
-            auth = await session.execute(
+
+            auth = await session.scalars(
                 select(models.AuthToken).where(
                     models.AuthToken.user_id == user.id,
                     models.AuthToken.refresh_token == refresh_token,
                     models.AuthToken.is_active == True,
                 )
             )
-            auth = auth.scalars().one_or_none()
+            auth = auth.one_or_none()
             if not auth:
                 raise invalid_refresh_token
+
             new_token: Token = create_token(
                 user=UserToken.model_validate(user),
                 refresh_token=refresh_token,

@@ -1,7 +1,7 @@
 import datetime
 
-from sqlalchemy import ForeignKey, UniqueConstraint
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import ForeignKey, UniqueConstraint, DateTime
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.auth.models import User
 from app.database import Base
@@ -13,14 +13,16 @@ class Posts(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     text: Mapped[str] = mapped_column()
-    author = mapped_column(ForeignKey(User.id, ondelete='CASCADE'))
+    author_id = mapped_column(ForeignKey(User.id, ondelete='CASCADE'))
     created: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True),
         default=datetime.datetime.now,
     )
     update_date: Mapped[datetime.datetime] = mapped_column(
         default=datetime.datetime.now,
     )
     is_deleted: Mapped[bool] = mapped_column(default=False)
+    author: Mapped["User"] = relationship()
 
 
 class Likes(Base):

@@ -8,7 +8,7 @@ from sqlalchemy import select, exc, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .router_class import RouteAuth, RouteWithOutAuth
-from .schemas import new_token
+from .schemas import get_new_token
 from ..database import get_session
 from . import schemas, models
 
@@ -106,7 +106,7 @@ async def create_token(
     form_data: schemas.RefreshTokenBase,
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
-    return await new_token(form_data.refresh_token, session=session)
+    return await get_new_token(form_data.refresh_token, session=session)
 
 
 @router_auth.delete(
