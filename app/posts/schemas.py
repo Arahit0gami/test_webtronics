@@ -20,8 +20,8 @@ class PostBase(BaseModel):
     update_date: datetime.datetime
 
 
-class PostCreate(BaseModel):
-    text: str = Field(max_length=1000)
+class PostCreateOrUpdate(BaseModel):
+    text: str = Field(max_length=4000)
 
 
 class FilterPosts(BaseModel):
@@ -42,7 +42,7 @@ class FilterPosts(BaseModel):
 
         :returns: select(model.Post).filter(*).order_by(**).limit(self.limit).offset(self.skip)
         """
-        queries = []
+        queries = [models.Posts.is_deleted == False, ]
         if self.author:
             queries.append(models.Posts.author_id == self.author)
         if self.date_from and self.date_to:
@@ -57,8 +57,8 @@ class FilterPosts(BaseModel):
         order_by = []
         if self.from_new_to_old is not None:
             order_by.append(
-                models.Posts.created if self.from_new_to_old
-                else models.Posts.created.desc()
+                models.Posts.created.desc() if self.from_new_to_old
+                else models.Posts.created
             )
 
         if count:
@@ -72,5 +72,5 @@ class FilterPosts(BaseModel):
 
 
 class AllPosts(FilterPosts):
-    count: int
+    total: int
     posts: List[PostBase]

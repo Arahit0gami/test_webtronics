@@ -1,3 +1,4 @@
+import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status, Request, HTTPException
@@ -10,6 +11,7 @@ from app.auth.router_class import RouteAuth, RouteWithOutAuth
 from app.database import get_session
 from app.posts import models
 from app.posts import schemas
+from app.posts.crud import get_post_in_db
 from app.posts.schemas import FilterPosts
 
 
@@ -27,13 +29,36 @@ router_posts_wa = APIRouter(
 )
 
 
+@router_posts_wa.get(
+    "/",
+    response_model=schemas.AllPosts,
+    status_code=status.HTTP_200_OK
+)
+async def get_posts(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    q: Annotated[FilterPosts, Depends()]
+):
+    """
+    Viewing all posts.\n
+    Filter: author, date_from, date_to \n
+    Sorting: from_new_to_old \n
+    Skip and Limit
+    """
+    count = await session.scalars(q.select_posts(count=True))
+    posts = await session.scalars(
+        q.select_posts().options(joinedload(models.Posts.author))
+    )
+
+    return {**q.model_dump(), "posts": posts, "total": count.one()}
+
+
 @router_posts.post(
     "/create",
     response_model=schemas.PostBase,
     status_code=status.HTTP_201_CREATED
 )
 async def create_post(
-        post_items: schemas.PostCreate,
+        post_items: schemas.PostCreateOrUpdate,
         request: Request,
         session: Annotated[AsyncSession, Depends(get_session)],
 ) -> models.Posts:
@@ -72,24 +97,37 @@ async def get_post(
     return post
 
 
-@router_posts_wa.get(
-    "/",
-    response_model=schemas.AllPosts,
+@router_posts.put(
+    "/{post_id}",
+    response_model=schemas.PostBase,
     status_code=status.HTTP_200_OK
 )
-async def get_posts(
-    session: Annotated[AsyncSession, Depends(get_session)],
-    q: Annotated[FilterPosts, Depends()]
-):
-    """
-    Viewing all posts.\n
-    Filter: author, date_from, date_to \n
-    Sorting: from_new_to_old \n
-    Skip and Limit
-    """
-    count = await session.scalars(q.select_posts(count=True))
-    posts = await session.scalars(
-        q.select_posts().options(joinedload(models.Posts.author))
-    )
+async def update_post(
+        post_id: int,
+        post_items: schemas.PostCreateOrUpdate,
+        request: Request,
+        session: Annotated[AsyncSession, Depends(get_session)],
+) -> models.Posts:
+    post = await get_post_in_db(post_id, request, session)
+    post.text = post_items.text
+    post.update_date = datetime.datetime.now()
+    await session.commit()
 
-    return {**q.model_dump(), "posts": posts, "total": count.one()}
+    return post
+
+
+@router_posts.delete(
+    "/{post_id}",
+    status_code=status.HTTP_200_OK
+)
+async def delete_post(
+        post_id: int,
+        request: Request,
+        session: Annotated[AsyncSession, Depends(get_session)],
+):
+    post = await get_post_in_db(post_id, request, session)
+    post.is_deleted = True
+    post.update_date = datetime.datetime.now()
+    await session.commit()
+
+    return f"Post with id={post_id} successfully deleted"
