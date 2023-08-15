@@ -11,9 +11,8 @@ from app.auth.router_class import RouteAuth, RouteWithOutAuth
 from app.database import get_session
 from app.posts import models
 from app.posts import schemas
-from app.posts.crud import get_post_in_db
-from app.posts.schemas import FilterPosts
-
+from app.posts.utils import get_post_in_db, setting_likes_dislikes
+from app.posts.schemas import FilterPosts, LikeDislike
 
 router_posts = APIRouter(
     prefix="/posts",
@@ -131,3 +130,24 @@ async def delete_post(
     await session.commit()
 
     return f"Post with id={post_id} successfully deleted"
+
+
+@router_posts.post(
+    "/like/{post_id}",
+    status_code=status.HTTP_200_OK
+)
+async def like_post(
+        post_id: int,
+        request: Request,
+        form_data: LikeDislike,
+        session: Annotated[AsyncSession, Depends(get_session)],
+):
+    result = await setting_likes_dislikes(
+        post_id=post_id,
+        data=form_data.model_dump(),
+        request=request,
+        session=session,
+    )
+
+    return result
+

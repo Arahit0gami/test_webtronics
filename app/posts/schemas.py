@@ -1,7 +1,8 @@
 import datetime
-from typing import List, Optional
+from typing import List, Optional, Literal, Any
 
-from pydantic import BaseModel, Field
+from fastapi import HTTPException, status
+from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import select, Select, func
 
 from app.posts import models
@@ -74,3 +75,18 @@ class FilterPosts(BaseModel):
 class AllPosts(FilterPosts):
     total: int
     posts: List[PostBase]
+
+
+class LikeDislike(BaseModel):
+    like: Literal['on', 'off'] = Field(default=None)
+    dislike: Literal['on', 'off'] = Field(default=None)
+
+    @model_validator(mode='before')
+    def check_like_dislike(cls, data: Any) -> Any:
+        if data.get("like") and data.get("dislike"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='Pass one of the "like" or "dislike" parameters'
+            )
+        return data
+

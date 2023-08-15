@@ -32,14 +32,14 @@ class BasicAuthBackend(AuthenticationBackend):
 
             match payload:
                 case {
-                    'id': int() as id,
+                    'id': int() as user_id,
                     'username': str() as username,
                     'email': str() as email,
                     'exp': int()
                 }:
                     user = await session.scalars(
                         select(models.User).where(
-                            models.User.id == id,
+                            models.User.id == user_id,
                             models.User.username == username,
                             models.User.email == email,
                             models.User.is_active == True,
@@ -47,7 +47,7 @@ class BasicAuthBackend(AuthenticationBackend):
                     )
                     auth = await session.scalars(
                         select(models.AuthToken).where(
-                            models.AuthToken.user_id == id,
+                            models.AuthToken.user_id == user_id,
                             models.AuthToken.token == token,
                             models.AuthToken.is_active == True,
                         )

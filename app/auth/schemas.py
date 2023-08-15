@@ -2,50 +2,40 @@ import datetime
 
 from fastapi import HTTPException, status
 from jose import jwt, JWTError
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import settings
 from app.auth import models
-
+from app.users.schemas import UserToken
 
 SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = settings.ALGORITHM
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 
 
-class UserBase(BaseModel):
-    email: EmailStr
-
-    class Config:
-        from_attributes = True
-
-
-class UserLogin(UserBase):
-    password: str
-
-
-class UserCreate(UserBase):
-    username: str
-    password: str
-
-
-class User(UserBase):
-    id: int
-    username: str
-    is_active: bool
-
-
-class UserToken(UserBase):
-    id: int
-    username: str
-
-
 class ChangePassword(BaseModel):
     old_password: str
     new_password: str
     repeat_new_password: str
+
+    @model_validator(mode='after')
+    def check_passwords_match(self) -> 'ChangePassword':
+        o_p = self.old_password
+        n_p = self.new_password
+        r_n_p = self.repeat_new_password
+        if n_p != r_n_p:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="The new password does not match the repeated password"
+            )
+        if o_p == n_p:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='The new password must not match the old password'
+            )
+        return self
 
 
 class TokenBase(BaseModel):
@@ -123,14 +113,14 @@ async def get_new_token(
 
     match payload:
         case {
-            'id': int() as id,
+            'id': int() as user_id,
             'username': str() as username,
             'email': str() as email,
             'exp': int()
         }:
             user = await session.scalars(
                 select(models.User).where(
-                    models.User.id == id,
+                    models.User.id == user_id,
                     models.User.username == username,
                     models.User.email == email,
                     models.User.is_active == True,
@@ -161,5 +151,3 @@ async def get_new_token(
             return new_token
         case _:
             raise invalid_refresh_token
-
-

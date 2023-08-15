@@ -11,6 +11,7 @@ from .router_class import RouteAuth, RouteWithOutAuth
 from .schemas import get_new_token
 from ..database import get_session
 from . import schemas, models
+from ..users.schemas import User, UserCreate, UserToken
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -39,10 +40,10 @@ router_with_out_auth = APIRouter(
 @router_with_out_auth.post(
     '/register',
     status_code=status.HTTP_201_CREATED,
-    response_model=schemas.User,
+    response_model=User,
 )
 async def register(
-        form_data: schemas.UserCreate,
+        form_data: UserCreate,
         session: Annotated[AsyncSession, Depends(get_session)],
 ):
 
@@ -73,12 +74,12 @@ async def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
-    get_user = await session.execute(
+    get_user = await session.scalars(
         select(models.User).where(
             models.User.email == form_data.username
         )
     )
-    user: models.User = get_user.scalars().one_or_none()
+    user: models.User = get_user.one_or_none()
     if not user or not pwd_context.verify(
             form_data.password, user.hashed_password
     ):
@@ -88,7 +89,7 @@ async def login(
         )
 
     token = schemas.create_token(
-        user=schemas.UserToken.model_validate(user),
+        user=UserToken.model_validate(user),
     )
     session.add(models.AuthToken(
         **token.model_dump(exclude=('token_type',))
@@ -117,10 +118,10 @@ async def logout(
         request: Request,
         session: Annotated[AsyncSession, Depends(get_session)],
 ):
-    result = await session.execute(select(models.AuthToken).where(
+    result = await session.scalars(select(models.AuthToken).where(
         models.AuthToken.id == request.auth.id
     ))
-    result = result.scalars().one_or_none()
+    result = result.one_or_none()
     if result:
         result.is_active = False
         await session.commit()
@@ -137,22 +138,12 @@ async def change_password(
         request: Request,
         session: Annotated[AsyncSession, Depends(get_session)],
 ):
-    if form_data.new_password != form_data.repeat_new_password:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Passwords don't match"
-        )
     if not pwd_context.verify(
         form_data.old_password, request.user.hashed_password
     ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail='The password was entered incorrectly'
-        )
-    if form_data.old_password == form_data.new_password:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='The new password must not match the old password'
+            detail='The current password was entered incorrectly'
         )
 
     user = (await session.execute(select(models.User).where(
