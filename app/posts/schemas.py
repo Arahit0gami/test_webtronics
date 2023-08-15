@@ -55,12 +55,10 @@ class FilterPosts(BaseModel):
         elif self.date_to:
             queries.append(models.Posts.created <= self.date_to)
 
-        order_by = []
-        if self.from_new_to_old is not None:
-            order_by.append(
-                models.Posts.created.desc() if self.from_new_to_old
-                else models.Posts.created
-            )
+        order_by = [
+            models.Posts.created.desc() if self.from_new_to_old
+            else models.Posts.created,
+        ]
 
         if count:
             return select(func.count(models.Posts.id)).filter(*queries)
