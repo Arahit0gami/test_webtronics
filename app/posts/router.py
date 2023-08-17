@@ -4,7 +4,6 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, status, Request, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
 
 from app.auth.router import reuseable_oauth
 from app.auth.router_class import RouteAuth, RouteWithOutAuth
@@ -13,6 +12,7 @@ from app.posts import models
 from app.posts import schemas
 from app.posts.utils import get_post_in_db, setting_likes_dislikes
 from app.posts.schemas import FilterPosts, LikeDislike
+
 
 router_posts = APIRouter(
     prefix="/posts",
@@ -45,7 +45,7 @@ async def get_posts(
     """
     count = await session.scalars(q.select_posts(count=True))
     posts = await session.scalars(
-        q.select_posts().options(joinedload(models.Posts.author))
+        q.select_posts()
     )
 
     return {**q.model_dump(), "posts": posts, "total": count.one()}
@@ -84,7 +84,7 @@ async def get_post(
         select(models.Posts).where(
             models.Posts.id == post_id,
             models.Posts.is_deleted == False,
-        ).options(joinedload(models.Posts.author))
+        )
     )
     post = post.one_or_none()
     if not post:
@@ -150,4 +150,3 @@ async def like_post(
     )
 
     return result
-

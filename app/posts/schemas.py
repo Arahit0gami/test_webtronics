@@ -19,6 +19,8 @@ class PostBase(BaseModel):
     author: Author
     created: datetime.datetime
     update_date: datetime.datetime
+    like: int
+    dislike: int
 
 
 class PostCreateOrUpdate(BaseModel):

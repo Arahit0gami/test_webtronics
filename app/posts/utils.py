@@ -35,7 +35,7 @@ async def get_post_in_db(
 
 async def setting_likes_dislikes(
         post_id: int,
-        data,
+        data: dict,
         request: Request,
         session: AsyncSession,
 ):
@@ -71,6 +71,8 @@ async def setting_likes_dislikes(
         await session.delete(like_info)
         await session.commit()
         return text_result
+    elif not post:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
     data["current_status"] = like_info.like
 
