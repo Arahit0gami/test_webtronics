@@ -1,26 +1,30 @@
 import datetime
 from typing import List, Optional, Literal, Any
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, Request
 from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import select, Select, func
+from sqlalchemy.orm import aliased
 
 from app.posts import models
+from app.users.models import User
 
 
 class Author(BaseModel):
     id: int
-    name: str = Field(alias='username')
+    name: str = Field(alias="username")
 
 
 class PostBase(BaseModel):
     id: int
+    title: str
     text: str
     author: Author
     created: datetime.datetime
     update_date: datetime.datetime
     like: int
     dislike: int
+    my_like: Optional[bool] = Field(default=None)
 
 
 class PostCreateOrUpdate(BaseModel):
@@ -34,10 +38,12 @@ class FilterPosts(BaseModel):
     from_new_to_old: bool = True
     date_from: Optional[datetime.datetime] = None
     date_to: Optional[datetime.datetime] = None
+    my_like: Optional[bool] | Literal["all"] = Field(default=None)
 
-    def select_posts(self, count=False) -> Select:
+    def select_posts(self, request: Request, count=None) -> Select:
         """
         Passes the FilterPosts parameters to the select(model.Post)
+            * my_like True=like, False=dislike, all=like and dislike
             * author, date_from, date_to in .filter(*)
             * from_new_to_old in .order_by(*)
             * limit in .limit(*)
@@ -45,6 +51,22 @@ class FilterPosts(BaseModel):
 
         :returns: select(model.Post).filter(*).order_by(**).limit(self.limit).offset(self.skip)
         """
+        if isinstance(request.user, User):
+            user: User = request.user
+            sub_queries = [models.Likes.user_id == user.id, ]
+            if self.my_like is not None:
+                print(self.my_like)
+                if self.my_like is True:
+                    sub_queries.append(models.Likes.like == True)
+                elif self.my_like is False:
+                    sub_queries.append(models.Likes.like == False)
+            subq = select(models.likes).where(
+                *sub_queries
+            ).subquery()
+            my_like = aliased(models.Likes, subq)
+        else:
+            my_like = None
+
         queries = [models.Posts.is_deleted == False, ]
         if self.author:
             queries.append(models.Posts.author_id == self.author)
@@ -62,14 +84,41 @@ class FilterPosts(BaseModel):
             else models.Posts.created,
         ]
 
-        if count:
-            return select(func.count(models.Posts.id)).filter(*queries)
+        if count and my_like and self.my_like is not None:
+            return select(
+                func.count(models.Posts.id)
+            ).join(my_like).filter(*queries)
+        elif count:
+            return select(
+                func.count(models.Posts.id)
+            ).filter(*queries)
 
-        return select(
-            models.Posts
-        ).filter(
-            *queries
-        ).order_by(*order_by).limit(self.limit).offset(self.skip)
+        if not my_like:
+            return select(
+                models.Posts
+            ).filter(
+                *queries
+            ).order_by(*order_by).limit(self.limit).offset(self.skip)
+        else:
+            if self.my_like is not None:
+                return select(
+                    models.Posts,
+                    my_like.like.label("my_like")
+                ).join(
+                    my_like
+                ).filter(
+                    *queries
+                ).order_by(*order_by).limit(self.limit).offset(self.skip)
+            else:
+                return select(
+                    models.Posts,
+                    my_like.like.label("my_like")
+                ).filter(
+                    *queries
+                ).join(
+                    models.Posts,
+                    full=True
+                ).order_by(*order_by).limit(self.limit).offset(self.skip)
 
 
 class AllPosts(FilterPosts):
@@ -78,10 +127,10 @@ class AllPosts(FilterPosts):
 
 
 class LikeDislike(BaseModel):
-    like: Literal['on', 'off'] = Field(default=None)
-    dislike: Literal['on', 'off'] = Field(default=None)
+    like: Literal["on", "off"] = Field(default=None)
+    dislike: Literal["on", "off"] = Field(default=None)
 
-    @model_validator(mode='before')
+    @model_validator(mode="before")
     def check_like_dislike(cls, data: Any) -> Any:
         if data.get("like") and data.get("dislike"):
             raise HTTPException(

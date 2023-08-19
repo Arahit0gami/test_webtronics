@@ -19,5 +19,3 @@ async def get_session() -> AsyncSession:
 
 class Base(DeclarativeBase):
     pass
-
-

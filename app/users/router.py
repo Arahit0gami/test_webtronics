@@ -20,7 +20,7 @@ router_users = APIRouter(
 
 
 @router_users.get(
-    '/',
+    "/",
     status_code=status.HTTP_200_OK,
     response_model=User,
 )
@@ -29,7 +29,7 @@ async def get_me(request: Request):
 
 
 @router_users.delete(
-    '/delete',
+    "/delete",
     status_code=status.HTTP_200_OK,
     response_model=User,
 )

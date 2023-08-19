@@ -20,8 +20,8 @@ class ChangePassword(BaseModel):
     new_password: str
     repeat_new_password: str
 
-    @model_validator(mode='after')
-    def check_passwords_match(self) -> 'ChangePassword':
+    @model_validator(mode="after")
+    def check_passwords_match(self) -> "ChangePassword":
         o_p = self.old_password
         n_p = self.new_password
         r_n_p = self.repeat_new_password
@@ -33,14 +33,14 @@ class ChangePassword(BaseModel):
         if o_p == n_p:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail='The new password must not match the old password'
+                detail="The new password must not match the old password"
             )
         return self
 
 
 class TokenBase(BaseModel):
     token: str
-    token_type: str = Field(default='Bearer')
+    token_type: str = Field(default="Bearer")
 
 
 class RefreshTokenBase(BaseModel):
@@ -74,7 +74,7 @@ def create_token(
         return Token(
             user_id=user.id,
             token=jwt.encode(
-                {**user.model_dump(), 'exp': expire},
+                {**user.model_dump(), "exp": expire},
                 SECRET_KEY,
                 algorithm=ALGORITHM
             ),
@@ -85,12 +85,12 @@ def create_token(
     return Token(
         user_id=user.id,
         token=jwt.encode(
-            {**user.model_dump(), 'exp': expire},
+            {**user.model_dump(), "exp": expire},
             SECRET_KEY,
             algorithm=ALGORITHM
         ),
         refresh_token=jwt.encode(
-            {**user.model_dump(), 'exp': ref_expire},
+            {**user.model_dump(), "exp": ref_expire},
             SECRET_KEY,
             algorithm=ALGORITHM
         ),
@@ -113,10 +113,10 @@ async def get_new_token(
 
     match payload:
         case {
-            'id': int() as user_id,
-            'username': str() as username,
-            'email': str() as email,
-            'exp': int()
+            "id": int() as user_id,
+            "username": str() as username,
+            "email": str() as email,
+            "exp": int()
         }:
             user = await session.scalars(
                 select(models.User).where(

@@ -13,8 +13,8 @@ class Likes(Base):
     __tablename__ = "likes"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    user_id = mapped_column(ForeignKey("users.id", ondelete='CASCADE'))
-    post_id = mapped_column(ForeignKey("posts.id", ondelete='CASCADE'))
+    user_id = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    post_id = mapped_column(ForeignKey("posts.id", ondelete="CASCADE"))
     # True==like, False==Dislike
     like: Mapped[bool] = mapped_column()
     update_date: Mapped[datetime.datetime] = mapped_column(
@@ -25,8 +25,8 @@ class Likes(Base):
     )
     __table_args__ = (
         UniqueConstraint(
-            'user_id', 'post_id',
-            name='unique_likes',
+            "user_id", "post_id",
+            name="unique_likes",
         ),
     )
 
@@ -36,8 +36,9 @@ class Posts(Base):
     __tablename__ = "posts"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    title: Mapped[str] = mapped_column()
     text: Mapped[str] = mapped_column()
-    author_id = mapped_column(ForeignKey(User.id, ondelete='CASCADE'))
+    author_id = mapped_column(ForeignKey(User.id, ondelete="CASCADE"))
     created: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True),
         default=datetime.datetime.now,

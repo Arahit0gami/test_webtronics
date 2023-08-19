@@ -1,10 +1,10 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Request, HTTPException, status
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import aliased
 
-from app.database import cache
 from app.posts import models
+from app.users.models import User
 
 
 async def get_post_in_db(
@@ -17,7 +17,7 @@ async def get_post_in_db(
         select(models.Posts).where(
             models.Posts.id == post_id,
             models.Posts.is_deleted == False,
-        ).options(joinedload(models.Posts.author))
+        )
     )
     post = post.one_or_none()
     if not post:
@@ -31,6 +31,47 @@ async def get_post_in_db(
             detail=f"You can't edit a post with id={post_id}"
         )
     return post
+
+
+async def get_post_in_db_and_like(
+        post_id: int,
+        request: Request,
+        session: AsyncSession,
+
+):
+    if isinstance(request.user, User):
+        subq = select(models.Likes).where(
+            models.Likes.user_id == request.user.id,
+        ).subquery()
+        my_like = aliased(models.Likes, subq, name="my_like")
+        post = await session.execute(
+            select(
+                models.Posts,
+                my_like.like.label("my_like")
+            ).where(
+                models.Posts.id == post_id,
+                models.Posts.is_deleted == False,
+            ).join(models.Posts, full=True)
+        )
+    else:
+        post = await session.execute(
+            select(models.Posts).where(
+                models.Posts.id == post_id,
+                models.Posts.is_deleted == False,
+            )
+        )
+
+    post = post.one_or_none()
+    if not post:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"post with id={post_id} not found"
+        )
+    match post:
+        case (post, my_like):
+            return {**post.__dict__, "my_like": my_like}
+        case (post,):
+            return {**post.__dict__, "my_like": None}
 
 
 async def setting_likes_dislikes(
@@ -58,13 +99,13 @@ async def setting_likes_dislikes(
     post = post.one_or_none()
     like_info = like_info.one_or_none()
 
-    if not like_info and post and 'on' in data.values():
+    if not like_info and post and "on" in data.values():
         like_info = models.Likes(
             user_id=request.user.id,
             post_id=post_id,
         )
         session.add(like_info)
-    elif not like_info and post and 'off' in data.values():
+    elif not like_info and post and "off" in data.values():
         return text_result
     elif like_info and not post:
         # Deleting a self-like
@@ -98,5 +139,4 @@ async def setting_likes_dislikes(
             return text_result
 
     await session.commit()
-    await cache.incr(f"")
     return text_result

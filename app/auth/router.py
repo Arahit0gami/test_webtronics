@@ -38,7 +38,7 @@ router_with_out_auth = APIRouter(
 
 
 @router_with_out_auth.post(
-    '/register',
+    "/register",
     status_code=status.HTTP_201_CREATED,
     response_model=User,
 )
@@ -66,7 +66,7 @@ async def register(
 
 
 @router_with_out_auth.post(
-    '/login',
+    "/login",
     status_code=status.HTTP_201_CREATED,
     response_model=schemas.RespToken,
 )
@@ -92,14 +92,14 @@ async def login(
         user=UserToken.model_validate(user),
     )
     session.add(models.AuthToken(
-        **token.model_dump(exclude=('token_type',))
+        **token.model_dump(exclude=("token_type",))
     ))
     await session.commit()
     return token
 
 
 @router_with_out_auth.post(
-    '/token',
+    "/token",
     status_code=status.HTTP_201_CREATED,
     response_model=schemas.RespToken,
 )
@@ -111,7 +111,7 @@ async def create_token(
 
 
 @router_auth.delete(
-    '/logout',
+    "/logout",
     status_code=status.HTTP_204_NO_CONTENT,
 )
 async def logout(
@@ -130,7 +130,7 @@ async def logout(
 
 
 @router_auth.post(
-    '/change-password',
+    "/change-password",
     status_code=status.HTTP_200_OK,
 )
 async def change_password(
@@ -143,7 +143,7 @@ async def change_password(
     ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail='The current password was entered incorrectly'
+            detail="The current password was entered incorrectly"
         )
 
     user = (await session.execute(select(models.User).where(
@@ -161,4 +161,4 @@ async def change_password(
 
     await session.commit()
 
-    return 'Password changed successfully'
+    return "Password changed successfully"

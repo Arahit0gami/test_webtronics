@@ -32,10 +32,10 @@ class BasicAuthBackend(AuthenticationBackend):
 
             match payload:
                 case {
-                    'id': int() as user_id,
-                    'username': str() as username,
-                    'email': str() as email,
-                    'exp': int()
+                    "id": int() as user_id,
+                    "username": str() as username,
+                    "email": str() as email,
+                    "exp": int()
                 }:
                     user = await session.scalars(
                         select(models.User).where(
