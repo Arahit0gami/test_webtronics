@@ -71,6 +71,7 @@ async def create_post(
         session: Annotated[AsyncSession, Depends(get_session)],
 ) -> models.Posts:
     post = models.Posts(
+        title=post_items.title,
         text=post_items.text,
         author=request.user,
     )
@@ -78,6 +79,26 @@ async def create_post(
     await session.commit()
     await session.refresh(post)
     return post
+
+
+@router_posts.post(
+    "/like/{post_id}",
+    status_code=status.HTTP_200_OK
+)
+async def like_post(
+        post_id: int,
+        request: Request,
+        form_data: LikeDislike,
+        session: Annotated[AsyncSession, Depends(get_session)],
+):
+    result = await setting_likes_dislikes(
+        post_id=post_id,
+        data=form_data.model_dump(),
+        request=request,
+        session=session,
+    )
+
+    return result
 
 
 @router_posts_wa.get(
@@ -108,6 +129,7 @@ async def update_post(
         session: Annotated[AsyncSession, Depends(get_session)],
 ) -> models.Posts:
     post = await get_post_in_db(post_id, request, session)
+    post.title = post_items.title
     post.text = post_items.text
     post.update_date = datetime.datetime.now()
     await session.commit()
@@ -130,23 +152,3 @@ async def delete_post(
     await session.commit()
 
     return f"Post with id={post_id} successfully deleted"
-
-
-@router_posts.post(
-    "/like/{post_id}",
-    status_code=status.HTTP_200_OK
-)
-async def like_post(
-        post_id: int,
-        request: Request,
-        form_data: LikeDislike,
-        session: Annotated[AsyncSession, Depends(get_session)],
-):
-    result = await setting_likes_dislikes(
-        post_id=post_id,
-        data=form_data.model_dump(),
-        request=request,
-        session=session,
-    )
-
-    return result

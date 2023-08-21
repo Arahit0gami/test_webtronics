@@ -13,6 +13,7 @@ middleware = [
 
 app = FastAPI(
     middleware=middleware,
+    title="Webtronics_test"
 )
 
 app.include_router(router_with_out_auth)

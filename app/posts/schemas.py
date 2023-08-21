@@ -28,7 +28,8 @@ class PostBase(BaseModel):
 
 
 class PostCreateOrUpdate(BaseModel):
-    text: str = Field(max_length=4000)
+    title: str = Field(min_length=1, max_length=200)
+    text: str = Field(min_length=1, max_length=4000)
 
 
 class FilterPosts(BaseModel):
