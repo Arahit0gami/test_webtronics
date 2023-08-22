@@ -48,7 +48,7 @@ class BasicAuthBackend(AuthenticationBackend):
                     auth = await session.scalars(
                         select(models.AuthToken).where(
                             models.AuthToken.user_id == user_id,
-                            models.AuthToken.token == token,
+                            models.AuthToken.access_token == token,
                             models.AuthToken.is_active == True,
                         )
                     )

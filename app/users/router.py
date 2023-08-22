@@ -4,7 +4,6 @@ from fastapi import APIRouter, Depends, status, Request
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.router import reuseable_oauth
 from app.auth.router_class import RouteAuth
 from app.database import get_session
 from app.users import models
@@ -15,7 +14,6 @@ router_users = APIRouter(
     prefix="/user",
     tags=["Users"],
     route_class=RouteAuth,
-    dependencies=[Depends(reuseable_oauth)]
 )
 
 

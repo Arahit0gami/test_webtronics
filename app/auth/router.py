@@ -1,7 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordRequestForm
 from passlib.context import CryptContext
 
 from sqlalchemy import select, exc, update
@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .router_class import RouteAuth, RouteWithOutAuth
 from .schemas import get_new_token
+from .swagger_auth import *
 from ..database import get_session
 from . import schemas, models
 from ..users.schemas import User, UserCreate, UserToken
@@ -17,17 +18,10 @@ from ..users.schemas import User, UserCreate, UserToken
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-reuseable_oauth = OAuth2PasswordBearer(
-    tokenUrl="/auth/login",
-    scheme_name="JWT"
-)
-
-
 router_auth = APIRouter(
     prefix="/auth",
     tags=["auth"],
     route_class=RouteAuth,
-    dependencies=[Depends(reuseable_oauth)]
 )
 
 router_with_out_auth = APIRouter(
@@ -41,6 +35,7 @@ router_with_out_auth = APIRouter(
     "/register",
     status_code=status.HTTP_201_CREATED,
     response_model=User,
+    responses=swagger_register,
 )
 async def register(
         form_data: UserCreate,
@@ -58,7 +53,7 @@ async def register(
     except exc.IntegrityError:
         await session.rollback()
         raise HTTPException(
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="An account with this email has already been registered"
         )
     await session.refresh(db_user)
@@ -69,6 +64,7 @@ async def register(
     "/login",
     status_code=status.HTTP_201_CREATED,
     response_model=schemas.RespToken,
+    responses=swagger_login,
 )
 async def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
@@ -102,6 +98,7 @@ async def login(
     "/token",
     status_code=status.HTTP_201_CREATED,
     response_model=schemas.RespToken,
+    responses=swagger_create_token,
 )
 async def create_token(
     form_data: schemas.RefreshTokenBase,
@@ -132,6 +129,7 @@ async def logout(
 @router_auth.post(
     "/change-password",
     status_code=status.HTTP_200_OK,
+    responses=swagger_change_password,
 )
 async def change_password(
         form_data: schemas.ChangePassword,

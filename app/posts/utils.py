@@ -7,6 +7,13 @@ from app.posts import models
 from app.users.models import User
 
 
+def error_post_not_found(post_id):
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Post with id={post_id} not found"
+    )
+
+
 async def get_post_in_db(
         post_id: int,
         request: Request,
@@ -21,10 +28,7 @@ async def get_post_in_db(
     )
     post = post.one_or_none()
     if not post:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Post with id={post_id} not found"
-        )
+        error_post_not_found(post_id)
     if post.author_id != request.user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -63,10 +67,7 @@ async def get_post_in_db_and_like(
 
     post = post.one_or_none()
     if not post:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"post with id={post_id} not found"
-        )
+        error_post_not_found(post_id)
     match post:
         case (post, my_like):
             return {**post.__dict__, "my_like": my_like}
@@ -107,13 +108,8 @@ async def setting_likes_dislikes(
         session.add(like_info)
     elif not like_info and post and "off" in data.values():
         return text_result
-    elif like_info and not post:
-        # Deleting a self-like
-        await session.delete(like_info)
-        await session.commit()
-        return text_result
     elif not post:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        error_post_not_found(post_id)
 
     data["current_status"] = like_info.like
 

@@ -22,9 +22,21 @@ class PostBase(BaseModel):
     author: Author
     created: datetime.datetime
     update_date: datetime.datetime
-    like: int
-    dislike: int
-    my_like: Optional[bool] = Field(default=None)
+    like: int = Field(description="count of likes")
+    dislike: int = Field(description="count of dislikes")
+    my_like: Optional[bool] = Field(
+        default=None,
+        description=
+        """
+        For authorized users:\n
+        \tIf the "my_like" parameter is set to True, it means "like". \n
+        \tIf the "my_like" parameter is set to False, it means "dislike". \n 
+        \tIf "my_like" is Null, then "like" or "dislike" are not set. \n
+        For not authorized users: \n
+        \tmy_like will always be Null
+        """,
+
+    )
 
 
 class PostCreateOrUpdate(BaseModel):
@@ -35,7 +47,7 @@ class PostCreateOrUpdate(BaseModel):
 class FilterPosts(BaseModel):
     skip: int = Field(default=0, le=20)
     limit: int = Field(default=10, ge=10, le=50)
-    author: Optional[int] = Field(default=None, description="author.id")
+    author: Optional[int] = Field(default=None, description="User ID")
     from_new_to_old: bool = True
     date_from: Optional[datetime.datetime] = None
     date_to: Optional[datetime.datetime] = None
@@ -49,14 +61,11 @@ class FilterPosts(BaseModel):
             * from_new_to_old in .order_by(*)
             * limit in .limit(*)
             * skip in .offset(*)
-
-        :returns: select(model.Post).filter(*).order_by(**).limit(self.limit).offset(self.skip)
         """
         if isinstance(request.user, User):
             user: User = request.user
             sub_queries = [models.Likes.user_id == user.id, ]
             if self.my_like is not None:
-                print(self.my_like)
                 if self.my_like is True:
                     sub_queries.append(models.Likes.like == True)
                 elif self.my_like is False:

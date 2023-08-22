@@ -14,7 +14,7 @@ class AuthToken(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     user_id = mapped_column(ForeignKey(User.id))
-    token: Mapped[str] = mapped_column(index=True, unique=True, nullable=False)
+    access_token: Mapped[str] = mapped_column(index=True, unique=True, nullable=False)
     last_update: Mapped[datetime.datetime] = mapped_column(
         default=datetime.datetime.now,
     )
@@ -45,7 +45,7 @@ class UsersActivity(Base):
     form_data: Mapped[Optional[str]] = mapped_column()
 
     user = mapped_column(ForeignKey(User.id))
-    token = mapped_column(ForeignKey(AuthToken.id))
+    auth = mapped_column(ForeignKey(AuthToken.id))
 
     result_status: Mapped[Optional[int]] = mapped_column()
     result_len: Mapped[Optional[int]] = mapped_column()

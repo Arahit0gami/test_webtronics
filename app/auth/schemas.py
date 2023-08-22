@@ -39,7 +39,7 @@ class ChangePassword(BaseModel):
 
 
 class TokenBase(BaseModel):
-    token: str
+    access_token: str
     token_type: str = Field(default="Bearer")
 
 
@@ -73,7 +73,7 @@ def create_token(
     if refresh_token:
         return Token(
             user_id=user.id,
-            token=jwt.encode(
+            access_token=jwt.encode(
                 {**user.model_dump(), "exp": expire},
                 SECRET_KEY,
                 algorithm=ALGORITHM
@@ -84,7 +84,7 @@ def create_token(
     ref_expire = datetime.datetime.utcnow() + datetime.timedelta(days=3)
     return Token(
         user_id=user.id,
-        token=jwt.encode(
+        access_token=jwt.encode(
             {**user.model_dump(), "exp": expire},
             SECRET_KEY,
             algorithm=ALGORITHM
@@ -103,7 +103,7 @@ async def get_new_token(
 ):
     invalid_refresh_token = HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="invalid refresh token"
+            detail="Invalid refresh token"
         )
 
     try:
@@ -145,7 +145,7 @@ async def get_new_token(
                 user=UserToken.model_validate(user),
                 refresh_token=refresh_token,
             )
-            auth.token = new_token.token
+            auth.access_token = new_token.access_token
             auth.last_update = datetime.datetime.now()
             await session.commit()
             return new_token

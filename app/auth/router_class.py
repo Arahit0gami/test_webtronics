@@ -4,10 +4,11 @@ from typing import Callable
 
 from urllib.parse import unquote
 
-from fastapi import Request, Response, status
+from fastapi import Request, Response, status, Depends
 from fastapi.exceptions import RequestValidationError, \
     ResponseValidationError, HTTPException
 from fastapi.routing import APIRoute
+from fastapi.security import OAuth2PasswordBearer
 
 from app.auth import models
 from app.auth.models import UsersActivity
@@ -27,8 +28,26 @@ class BaseUserLogs(APIRoute):
     )
     exclude_url_path: tuple[str] = ('/auth/register', '/auth/login')
     required_auth: bool = False
+    http_response: dict = None
+    # Anything from fastapi.security
+    reuseable_oauth = None
 
     def get_route_handler(self) -> Callable:
+        if self.required_auth and self.reuseable_oauth:
+            if self.dependencies:
+                self.dependencies.append(Depends(self.reuseable_oauth))
+            else:
+                self.dependencies = [Depends(self.reuseable_oauth)]
+        elif self.required_auth and not self.reuseable_oauth:
+            raise Exception(
+                'required_auth is True, reuseable_oauth cannot be None'
+            )
+        if self.http_response:
+            if isinstance(self.responses, dict):
+                self.responses.update(self.http_response)
+            else:
+                self.responses = self.http_response
+
         original_route_handler = super().get_route_handler()
 
         async def custom_route_handler(request: Request) -> Response:
@@ -125,7 +144,7 @@ class BaseUserLogs(APIRoute):
         if hasattr(request.user, 'id'):
             u_act.user = request.user.id
         if hasattr(request.auth, 'id'):
-            u_act.token = request.auth.id
+            u_act.auth = request.auth.id
         if result:
             u_act.result_status = result.status_code
             u_act.result_len = len(result.body)
@@ -140,6 +159,30 @@ class BaseUserLogs(APIRoute):
 class RouteAuth(BaseUserLogs):
     required_auth: bool = True
     exclude_url_path = ('/auth/change-password',)
+    http_response = {
+        401: {
+            "description": "Unauthorized(Access_token)",
+            "content": {
+                "application/json": {
+                    "schema": {
+                        "oneOf": [
+                            {
+                                "title": "Not authorized",
+                                "description": "Could not validate credentials",
+                                "example": {
+                                    "description": "Could not validate credentials"
+                                }
+                            },
+                        ]
+                    }
+                }
+            },
+        },
+    }
+    reuseable_oauth = OAuth2PasswordBearer(
+        tokenUrl="/auth/login",
+        scheme_name="JWT"
+    )
 
 
 class RouteWithOutAuth(BaseUserLogs):
