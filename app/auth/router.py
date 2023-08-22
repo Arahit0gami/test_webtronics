@@ -104,6 +104,12 @@ async def create_token(
     form_data: schemas.RefreshTokenBase,
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
+    """
+    The valid refresh_token received during authorization
+    allows to receive a new access_token. \n
+    When a new access_token is obtained,
+    the old access_token from the current authorization is no longer valid.
+    """
     return await get_new_token(form_data.refresh_token, session=session)
 
 
@@ -136,6 +142,10 @@ async def change_password(
         request: Request,
         session: Annotated[AsyncSession, Depends(get_session)],
 ):
+    """
+    When you change the password, all other access_token and refresh_token
+    from the authorization will be reset except for the current authorization.
+    """
     if not pwd_context.verify(
         form_data.old_password, request.user.hashed_password
     ):
@@ -152,8 +162,7 @@ async def change_password(
     stmt = (
         update(models.AuthToken).
         where(models.AuthToken.id != request.auth.id).
-        values(is_active=False).
-        returning(models.AuthToken)
+        values(is_active=False)
     )
     await session.execute(stmt)
 

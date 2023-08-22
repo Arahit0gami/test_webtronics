@@ -1,7 +1,7 @@
 import datetime
 from typing import Optional
 
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -14,17 +14,20 @@ class AuthToken(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     user_id = mapped_column(ForeignKey(User.id))
-    access_token: Mapped[str] = mapped_column(index=True, unique=True, nullable=False)
+    access_token: Mapped[str] = mapped_column(
+       unique=True, nullable=False
+    )
     last_update: Mapped[datetime.datetime] = mapped_column(
         default=datetime.datetime.now,
     )
     refresh_token: Mapped[str] = mapped_column(
-        index=True, unique=True, nullable=False
+        unique=True, nullable=False
     )
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
     created: Mapped[datetime.datetime] = mapped_column(
         default=datetime.datetime.now,
     )
+    __table_args__ = (Index('ix_user_id', user_id),)
 
 
 class UsersActivity(Base):
