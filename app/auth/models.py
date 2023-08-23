@@ -60,6 +60,3 @@ class UsersActivity(Base):
     created: Mapped[datetime.datetime] = mapped_column(
         default=datetime.datetime.now,
     )
-
-
-users_activity = UsersActivity.__table__
