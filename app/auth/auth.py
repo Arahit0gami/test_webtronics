@@ -16,6 +16,7 @@ from app.settings import SECRET_KEY, ALGORITHM, CONCURRENT_CONNECTIONS
 
 
 class BasicAuthBackend(AuthenticationBackend):
+    a_s = async_session
 
     @staticmethod
     def get_user_token(request: Request) -> Optional[str]:
@@ -71,5 +72,5 @@ class BasicAuthBackend(AuthenticationBackend):
         return AuthCredentials([]), UnauthenticatedUser
 
     async def authenticate(self, request: Request):
-        async with async_session() as session:
+        async with self.a_s() as session:
             return await self.main_auth(request, session)

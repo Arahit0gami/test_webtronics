@@ -161,7 +161,8 @@ async def change_password(
 
     stmt = (
         update(models.AuthToken).
-        where(models.AuthToken.id != request.auth.id).
+        where(models.AuthToken.id != request.auth.id,
+              models.AuthToken.user_id == request.user.id).
         values(is_active=False)
     )
     await session.execute(stmt)

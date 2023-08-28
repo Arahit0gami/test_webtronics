@@ -26,11 +26,12 @@ class BaseUserLogs(APIRoute):
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    exclude_url_path: tuple[str] = ('/auth/register', '/auth/login')
+    exclude_url_path: tuple[str] = ()
     required_auth: bool = False
     http_response: dict = None
     # Anything from fastapi.security
     reuseable_oauth = None
+    a_s = async_session
 
     def get_route_handler(self) -> Callable:
         if self.required_auth and self.reuseable_oauth:
@@ -51,7 +52,7 @@ class BaseUserLogs(APIRoute):
         original_route_handler = super().get_route_handler()
 
         async def custom_route_handler(request: Request) -> Response:
-            async with async_session() as db:
+            async with self.a_s() as db:
                 u_act = await self.create_log(db, request)
                 try:
                     if self.required_auth and (not isinstance(

@@ -17,8 +17,8 @@ ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 
 class ChangePassword(BaseModel):
     old_password: str
-    new_password: str
-    repeat_new_password: str
+    new_password: str = Field(min_length=4, max_length=20)
+    repeat_new_password: str = Field(min_length=4, max_length=20)
 
     @model_validator(mode="after")
     def check_passwords_match(self) -> "ChangePassword":
@@ -54,9 +54,6 @@ class RespToken(TokenBase, RefreshTokenBase):
 
 class Token(TokenBase, RefreshTokenBase):
     user_id: int
-
-    class Config:
-        from_attributes = True
 
 
 def create_token(
