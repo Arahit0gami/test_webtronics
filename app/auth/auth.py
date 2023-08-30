@@ -42,7 +42,6 @@ class BasicAuthBackend(AuthenticationBackend):
                     user = await session.scalars(
                         select(models.User).where(
                             models.User.id == user_id,
-                            models.User.username == username,
                             models.User.email == email,
                             models.User.is_active == True,
                         )

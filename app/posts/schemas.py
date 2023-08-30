@@ -12,7 +12,7 @@ from app.users.models import User
 
 class Author(BaseModel):
     id: int
-    name: str = Field(alias="username")
+    username: str
 
 
 class PostBase(BaseModel):

@@ -155,7 +155,7 @@ async def update_post(
     post.text = post_items.text
     post.update_date = datetime.datetime.now()
     await session.commit()
-
+    await session.refresh(post)
     return post
 
 

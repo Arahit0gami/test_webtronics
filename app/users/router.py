@@ -48,7 +48,7 @@ async def change_name_user(
     status_code=status.HTTP_200_OK,
     response_model=User,
 )
-async def get_me(
+async def delete_me(
         request: Request,
         session: Annotated[AsyncSession, Depends(get_session)],
 ):

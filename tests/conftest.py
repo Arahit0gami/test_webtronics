@@ -1,4 +1,6 @@
 import asyncio
+import random
+import string
 from typing import AsyncGenerator
 
 import pytest
@@ -14,7 +16,7 @@ from app.settings import (DB_HOST_TEST, DB_NAME_TEST, DB_PASS_TEST,
                           DB_PORT_TEST,
                           DB_USER_TEST)
 from main import app
-from tests.test_data import FakeUser
+from tests.test_data import FakeUser, FakePost
 
 # DATABASE
 DATABASE_URL_TEST = f"postgresql+asyncpg://{DB_USER_TEST}:{DB_PASS_TEST}@{DB_HOST_TEST}:{DB_PORT_TEST}/{DB_NAME_TEST}"
@@ -64,6 +66,12 @@ async def ac() -> AsyncGenerator[AsyncClient, None]:
 
 
 @pytest.fixture(scope="session")
+async def db() -> AsyncGenerator[AsyncClient, None]:
+    async with async_session() as session:
+        yield session
+
+
+@pytest.fixture(scope="session")
 def users() -> list:
     users = [
         FakeUser(
@@ -77,7 +85,7 @@ def users() -> list:
             token_type=None,
             fake=False,
         )
-        for i in range(1, 6)
+        for i in range(1, 10)
     ]
     users.append(
         FakeUser(
@@ -106,3 +114,24 @@ def users() -> list:
         )
     )
     yield users
+
+
+@pytest.fixture(scope="session")
+def posts() -> list:
+    letters = string.printable
+    posts = [
+        FakePost(
+            title=''.join(
+                random.choice(letters) for i in range(
+                    random.randint(1, 200)
+                )
+            ),
+            text=''.join(
+                random.choice(letters) for i in range(
+                    random.randint(1, 4000)
+                )
+            )
+        )
+        for i in range(100)
+    ]
+    yield posts

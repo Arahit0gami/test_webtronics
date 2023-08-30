@@ -28,6 +28,22 @@ swagger_like_post = {
             },
             "required": True,
         },
+        "400": {
+            "description": "Bad request",
+            "content": {
+                "application/json": {
+                    "schema": {
+                        "title": "Bad request",
+                        "description": 'Pass one of the '
+                                       '"like" or "dislike" parameters',
+                        "example": {
+                            "description": 'Pass one of the '
+                                           '"like" or "dislike" parameters'
+                        }
+                    },
+                }
+            },
+        },
         "404": {
             "description": "Not found post",
             "content": {
