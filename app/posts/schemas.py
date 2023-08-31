@@ -2,7 +2,7 @@ import datetime
 from typing import List, Optional, Literal, Any
 
 from fastapi import HTTPException, status, Request
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator, field_validator
 from sqlalchemy import select, Select, func
 from sqlalchemy.orm import aliased
 
@@ -45,13 +45,22 @@ class PostCreateOrUpdate(BaseModel):
 
 
 class FilterPosts(BaseModel):
-    skip: int = Field(default=0, le=20)
+    skip: int = Field(default=0)
     limit: int = Field(default=10, ge=10, le=50)
     author: Optional[int] = Field(default=None, description="User ID")
     from_new_to_old: bool = True
     date_from: Optional[datetime.datetime] = None
     date_to: Optional[datetime.datetime] = None
     my_like: Optional[bool] | Literal["all"] = Field(default=None)
+
+    @field_validator('limit', mode="before")
+    def check_limit(cls, v: int) -> int:
+        if v > 50:
+            return 50
+        elif v < 10:
+            return 10
+        else:
+            return v
 
     def select_posts(self, request: Request, count=None) -> Select:
         """
@@ -70,7 +79,7 @@ class FilterPosts(BaseModel):
                     sub_queries.append(models.Likes.like == True)
                 elif self.my_like is False:
                     sub_queries.append(models.Likes.like == False)
-            subq = select(models.likes).where(
+            subq = select(models.Likes).where(
                 *sub_queries
             ).subquery()
             my_like = aliased(models.Likes, subq)

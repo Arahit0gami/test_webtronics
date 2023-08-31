@@ -3,7 +3,7 @@ import random
 from typing import List
 
 import pytest
-from httpx import AsyncClient
+from httpx import AsyncClient, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -394,7 +394,7 @@ async def test_like_post(
 
 
 @pytest.mark.order(12)
-async def test_get_posts(
+async def test_get_post(
         ac: AsyncClient,
         users: List[FakeUser],
         posts: List[FakePost],
@@ -432,9 +432,7 @@ async def test_get_posts(
         if post.is_deleted is False:
             response = await post_get(post)
             assert response.status_code == 200
-            post.author.username = response.json()["author"][
-                "username"
-            ]
+            post.update({"author": response.json()["author"]})
             assert response.json() == post.model_dump(include=after_get)
 
     for post in posts:
@@ -462,4 +460,249 @@ async def test_get_posts(
                 params_post["author"]["username"] = user.username
                 assert response.json() == params_post
 
+
+@pytest.mark.order(13)
+async def test_get_posts(
+        ac: AsyncClient,
+        users: List[FakeUser],
+        posts: List[FakePost],
+        db: AsyncSession
+):
+
+    after_get = {
+        "id", "title", "text", "author",
+        "created", "update_date", "like", "dislike", "my_like"
+    }
+
+    spec_time = datetime.datetime(year=2020, month=1, day=1)
+    created_time_posts = {}
+    posts_dict = {}
+
+    # Modify records to allow the use of a date filter
+    all_posts_in_db = await db.scalars(
+        select(Posts).where(Posts.is_deleted == False)
+    )
+    for post in all_posts_in_db:
+        post.created = spec_time
+        created_time_posts.update({post.id: post.created})
+        spec_time += datetime.timedelta(days=1)
+    await db.commit()
+
+    for post in posts:
+        if post.is_deleted is False:
+            post.created = created_time_posts[
+                post.id
+            ].strftime("%Y-%m-%dT%H:%M:%S")
+            posts_dict.update({post.id: post.model_dump(include=after_get)})
+
+    async def posts_get(
+            user: FakeUser = None,
+            skip: int = None,
+            limit: int = None,
+            author: int = None,
+            from_new_to_old: bool = None,
+            date_from: datetime.datetime = None,
+            date_to: datetime.datetime = None,
+            my_like: bool | str = None,
+    ):
+        if user:
+            headers = {"Authorization": f"{user.token_type} {user.access_token}"}
+        else:
+            headers = None
+        data = {}
+        if skip:
+            data.update({"skip": skip})
+        if limit:
+            data.update({"limit": limit})
+        if author:
+            data.update({"author": author})
+        if from_new_to_old is not None:
+            data.update({"from_new_to_old": from_new_to_old})
+        if date_from:
+            data.update({"date_from": date_from})
+        if date_to:
+            data.update({"date_to": date_to})
+        if my_like is not None:
+            data.update({"my_like": my_like})
+        return await ac.get(
+            f"/posts/",
+            headers=headers,
+            params=data,
+        )
+
+    def compare_results(
+            status_code: int, results: Response, skip: int = 0,
+            limit: int = 10, author: int = None, from_new_to_old: bool = True,
+            date_from: datetime.datetime = None,
+            date_to: datetime.datetime = None, my_like: bool | str = None,
+            total: int = None, user: FakeUser = None
+    ):
+        assert results.status_code == status_code
+        other_parameters = results.json()
+        del other_parameters["posts"]
+
+        if date_to:
+            other_parameters["date_to"] = datetime.datetime.strptime(
+                other_parameters["date_to"], '%Y-%m-%dT%H:%M:%S'
+            )
+        if date_from:
+            other_parameters["date_from"] = datetime.datetime.strptime(
+                other_parameters["date_from"], '%Y-%m-%dT%H:%M:%S'
+            )
+
+        assert other_parameters == {
+            "skip": skip,
+            "limit": limit,
+            "author": author,
+            "from_new_to_old": from_new_to_old,
+            "date_from": date_from,
+            "date_to": date_to,
+            "my_like": my_like,
+            "total": total,
+        }
+        assert len(results.json()["posts"]) <= results.json()["limit"]
+
+        if user and my_like is not None:
+            if my_like is True and not (author or date_to or date_from):
+                assert results.json()["total"] == user.count_like
+            elif my_like is False and not (author or date_to or date_from):
+                assert results.json()["total"] == user.count_dislike
+            elif my_like == "all" and not (author or date_to or date_from):
+                assert (results.json()["total"] ==
+                        user.count_like + user.count_dislike)
+
+        date_check_more = datetime.datetime(year=2022, month=1, day=1)
+        date_check_less = datetime.datetime(year=2019, month=1, day=1)
+        for r in results.json()["posts"]:
+            if user:
+                post_params = posts_dict[r["id"]]
+                post_params["my_like"] = r["my_like"]
+                assert r == post_params
+            else:
+                assert r == posts_dict[r["id"]]
+
+            if author:
+                assert r["author"]["id"] == author
+                assert r == posts_dict[r["id"]]
+            if from_new_to_old is not None:
+                date = datetime.datetime.strptime(
+                    r["created"], '%Y-%m-%dT%H:%M:%S'
+                )
+                if from_new_to_old:
+                    assert date < date_check_more
+                    date_check_more = date
+                    assert r == posts_dict[r["id"]]
+                elif not from_new_to_old:
+                    assert date > date_check_less
+                    date_check_less = date
+                    assert r == posts_dict[r["id"]]
+            if date_from and date_to:
+                date = datetime.datetime.strptime(
+                    r["created"], '%Y-%m-%dT%H:%M:%S'
+                )
+                assert date_from <= date <= date_to
+                assert r == posts_dict[r["id"]]
+
+    # -------------------------------------------------------------------
+    # Query without filters
+    response = await posts_get()
+    compare_results(
+        status_code=200, results=response, total=90
+    )
+
+    # Filter by author
+    check_author = random.randint(1, 6)
+    response = await posts_get(skip=0, limit=50, author=check_author)
+    compare_results(
+        status_code=200, results=response, total=response.json()["total"],
+        skip=0, limit=50, author=check_author
+    )
+
+    # Filter by nonexistent author
+    response = await posts_get(author=100)
+    assert response.json()["posts"] == []
+    assert response.json()["total"] == 0
+
+    # Filter from old to new and from new to old
+    response = await posts_get(skip=0, limit=50, from_new_to_old=False)
+    compare_results(
+        status_code=200, results=response, total=response.json()["total"],
+        skip=0, limit=50, from_new_to_old=False
+    )
+
+    response = await posts_get(skip=0, limit=50, from_new_to_old=True)
+    compare_results(
+        status_code=200, results=response, total=response.json()["total"],
+        skip=0, limit=50, from_new_to_old=True
+    )
+
+    # Filter by date
+    response = await posts_get(
+        skip=0, limit=50,
+        date_from=datetime.datetime(2020, 2, 1),
+        date_to=datetime.datetime(2020, 3, 1)
+    )
+    compare_results(
+        status_code=200, results=response,
+        total=response.json()["total"],
+        skip=0, limit=50,
+        date_from=datetime.datetime(2020, 2, 1),
+        date_to=datetime.datetime(2020, 3, 1),
+    )
+
+    for user in users:
+        # In the two examples we pass limit outside the diapason
+        response = await posts_get(user, skip=20, limit=5)
+        compare_results(
+            status_code=200, results=response,
+            total=90, skip=20, limit=10, user=user,
+        )
+
+        # Filter by my likes or dislikes
+        response = await posts_get(user, skip=0, limit=70, my_like=True)
+        compare_results(
+            status_code=200, results=response,
+            total=response.json()["total"], skip=0, limit=50,
+            user=user, my_like=True,
+        )
+
+        response = await posts_get(user, skip=0, limit=50, my_like=False)
+        compare_results(
+            status_code=200, results=response,
+            total=response.json()["total"], skip=0, limit=50,
+            user=user, my_like=False
+        )
+
+        response = await posts_get(user, skip=20, limit=50, my_like="all")
+        compare_results(
+            status_code=200, results=response,
+            total=response.json()["total"], skip=20, limit=50,
+            user=user, my_like="all"
+        )
+
+        # Set all filters
+        check_my_like = random.choice([True, False, "all"])
+        check_from_new_to_old = random.choice([True, False])
+        response = await posts_get(
+            user,
+            skip=1,
+            limit=10,
+            my_like=check_my_like,
+            from_new_to_old=check_from_new_to_old,
+            date_from=datetime.datetime(2020, 1, 1),
+            date_to=datetime.datetime(2020, 4, 1),
+            author=check_author
+        )
+        compare_results(
+            status_code=200, results=response,
+            user=user,
+            total=response.json()["total"],
+            skip=1,
+            limit=10,
+            my_like=check_my_like,
+            from_new_to_old=check_from_new_to_old,
+            date_from=datetime.datetime(2020, 1, 1),
+            date_to=datetime.datetime(2020, 4, 1),
+            author=check_author
+        )
 

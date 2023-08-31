@@ -40,7 +40,6 @@ class Posts(Base):
     text: Mapped[str] = mapped_column()
     author_id = mapped_column(ForeignKey(User.id, ondelete="CASCADE"))
     created: Mapped[datetime.datetime] = mapped_column(
-        DateTime(timezone=True),
         default=datetime.datetime.now,
     )
     update_date: Mapped[datetime.datetime] = mapped_column(
