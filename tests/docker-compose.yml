@@ -1,0 +1,27 @@
+version: '3.8'
+services:
+
+  test-db:
+    image: postgres:15
+    container_name: test-db
+    volumes:
+      - test_db:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=${DB_USER_TEST}
+      - POSTGRES_PASSWORD=${DB_PASS_TEST}
+      - POSTGRES_DB=${DB_NAME_TEST}
+    ports:
+      - "5433:5432"
+
+  test-app:
+    image: myapp:v01
+    container_name: test-app
+    ports:
+      - "8000:8000"
+    command:
+      - pytest
+    depends_on:
+      - test-db
+
+volumes:
+  test_db:

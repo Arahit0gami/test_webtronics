@@ -2,33 +2,24 @@ version: '3.8'
 services:
   db:
     image: postgres:15
-    container_name: prod-pg
+    container_name: prod-db
     volumes:
       - prod_db:/var/lib/postgresql/data/
     env_file:
-          - ./.env
+      - ./.env
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
     restart: always
     networks:
       - localnet
     ports:
       - "5432:5432"
 
-  test-db:
-    image: postgres:15
-    container_name: test-pg
-    volumes:
-      - test_db:/var/lib/postgresql/data/
-    env_file:
-      - ./.env
-    restart: always
-    networks:
-      - localnet
-    ports:
-      - "5431:5432"
-
   app:
-    build: .
-    container_name: webtronics-app
+    image: myapp:v01
+    container_name: prod-app
     volumes:
       - ./:/code
     env_file:
@@ -38,7 +29,6 @@ services:
     restart: always
     depends_on:
       - db
-      - test-db
     networks:
       - internet
       - localnet
@@ -60,7 +50,6 @@ services:
 
 volumes:
   prod_db:
-  test_db:
   media_value:
 
 networks:
