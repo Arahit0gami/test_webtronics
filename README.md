@@ -32,12 +32,12 @@ To get a local copy up and running follow these simple example steps.
     REFRESH_TOKEN_EXPIRE_HOURS = 24*3
     CONCURRENT_CONNECTIONS = 0
 ```
-- DEBUG - If the value is False, the settings of the connection to the production base are used. Server errors will not be displayed in the console. 
-If the value is True, the connection settings to the test base are used (make sure that the test base is running). All errors will be displayed in the console.
+- DEBUG - If the value is False, the production base connection settings are used. Server errors will not be displayed in the console. 
+If the value is True, the connection settings to the test base are used (make sure that the test base is running). All server errors will be displayed in the console.
 - ACCESS_TOKEN_EXPIRE_MINUTES - Specify the lifetime of the authorization token in minutes.
 - REFRESH_TOKEN_EXPIRE_HOURS - Specify the lifetime of the refresh token in hours.
-- CONCURRENT_CONNECTIONS - Number of simultaneous connections to the resource. If 0 is specified, the number is unlimited. 
-If for example 4 is specified, then there can be 4 simultaneous authorizations, with each new authorization, the oldest will not be available.
+- CONCURRENT_CONNECTIONS - The number of simultaneous connections to the system by one user. If 0 is specified, the number is unlimited. 
+If it is specified, for example, 4, the user can have 4 valid authorizations at the same time, and with each new authorization the oldest one will be unavailable.
 
 #### 2) Before starting the server, you must create an .env file with your data in the root directory. Specify PostgreSQL connection settings and specify SECRET_KEY.
 
