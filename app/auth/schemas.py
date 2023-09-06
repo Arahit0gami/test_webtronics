@@ -13,6 +13,7 @@ from app.users.schemas import UserToken
 SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = settings.ALGORITHM
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
+REFRESH_TOKEN_EXPIRE_HOURS = settings.REFRESH_TOKEN_EXPIRE_HOURS
 
 
 class ChangePassword(BaseModel):
@@ -78,7 +79,9 @@ def create_token(
             refresh_token=refresh_token,
         )
 
-    ref_expire = datetime.datetime.utcnow() + datetime.timedelta(days=3)
+    ref_expire = datetime.datetime.utcnow() + datetime.timedelta(
+        hours=REFRESH_TOKEN_EXPIRE_HOURS
+    )
     return Token(
         user_id=user.id,
         access_token=jwt.encode(
