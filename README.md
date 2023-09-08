@@ -21,28 +21,30 @@ Test task from webtronics: "Create a simple RESTful API using FastAPI for a soci
 <!-- GETTING STARTED -->
 ## Getting Started
 
-To get a local copy up and running follow these simple example steps.
+To get a local copy up and running, follow these simple example steps.
 
 ## Prerequisites
 
-#### 1) There are several customizable fields in the app/settings.py file. You can customize them according to your wishes.
+#### 1) There are several customizable fields in the app/settings.py file as follows. You can customize them according to your needs.
 ```
     DEBUG = False
     ACCESS_TOKEN_EXPIRE_MINUTES = 30
     REFRESH_TOKEN_EXPIRE_HOURS = 24*3
     CONCURRENT_CONNECTIONS = 0
 ```
-- DEBUG - If the value is False, the production base connection settings are used. Server errors will not be displayed in the console. 
-If the value is True, the connection settings to the test base are used (make sure that the test base is running). All server errors will be displayed in the console.
+- DEBUG - If the value is False, there will be used the production base connection settings, and server errors will not be displayed in the console. 
+If the value is True, there will be used the test base connection settings (make sure that the test base is running), and server errors will be displayed in the console.
 - ACCESS_TOKEN_EXPIRE_MINUTES - Specify the lifetime of the authorization token in minutes.
 - REFRESH_TOKEN_EXPIRE_HOURS - Specify the lifetime of the refresh token in hours.
-- CONCURRENT_CONNECTIONS - The number of simultaneous connections to the system by one user. If 0 is specified, the number is unlimited. 
-If it is specified, for example, 4, the user can have 4 valid authorizations at the same time, and with each new authorization the oldest one will be unavailable.
+CONCURRENT_CONNECTIONS - The number of simultaneous connections to the system by one user. 
+If 0 is specified, the number is unlimited. If more than 0 is specified, for example, 4, 
+the user can have the specified number of valid authorizations at the same time (as for the example, 4 valid authorizations at the same time), 
+and with each new authorization the oldest one will be unavailable.
 
 #### 2) Before starting the server, you must create an .env file with your data in the root directory. Specify PostgreSQL connection settings and specify SECRET_KEY.
 
 ```bash
-    # SECRET_KEY the result of executing the command in bash: openssl rand -hex 32
+    # SECRET_KEY is a result of executing the following command in bash: openssl rand -hex 32
     SECRET_KEY=key
     
     # Production server settings
@@ -69,7 +71,7 @@ _Below is an example of how you can instruct your audience on installing and set
    ```bash
    git clone https://github.com/Arahit0gami/test_webtronics.git
    ```
-2. Specify the necessary settings that are specified in [Prerequisites](#prerequisites).
+2. Specify the necessary settings that are mentioned in [Prerequisites](#prerequisites).
 3. In root directory run script.sh
    ```
    ./script.sh
@@ -78,7 +80,7 @@ _Below is an example of how you can instruct your audience on installing and set
 
 ## Documentation
 
-All API descriptions can be found at the addresses:
+All API descriptions can be found at the following addresses:
 
 - <http://127.0.0.1:8000/docs>
 
