@@ -91,6 +91,11 @@ All API descriptions can be found at the following addresses:
 [Kuzmenko Nikita](https://github.com/Arahit0gami)
 
 
+## P.S.
+Just a note for those who will be watching this test assignment. 
+No feedback has been received from the company, so I don't know how well or poorly the assignment was done.
+
+
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
 [fastapi.tiangolo.com]: https://img.shields.io/badge/FastAPI-0.101.0-green?style=plastic&logo=FastAPI
