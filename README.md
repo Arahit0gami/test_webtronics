@@ -88,7 +88,7 @@ All API descriptions can be found at the following addresses:
 
 
 ## Author
-[Kuzmenko Nikita](https://github.com/Arahit0gami)
+[Kuzmenko Nikita](https://github.com/arahitogami)
 
 
 ## P.S.
